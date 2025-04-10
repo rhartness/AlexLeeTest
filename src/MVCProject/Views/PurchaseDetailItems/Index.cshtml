@@ -1,0 +1,369 @@
+﻿@model List<Domain.Core.Models.PurchaseDetailItem>
+@{
+    ViewData["Title"] = "Purchase Details";
+}
+
+<div class="container-fluid">
+    <h2>Purchase Details</h2>
+
+    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+    {
+        <div class="alert alert-danger">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addItemModal">
+                Add New Item
+            </button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Filter</h5>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get">
+                <div class="row`">
+                    <div class="alert alert-info">
+                        PLEASE NOTE THAT THIS IS A NAIVE FILTER. ALL VALUES MUST MATCH A VALUE IN THE SPECIFIC FIELD!
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="purchaseOrderNumber" class="form-label">Purchase Order Number</label>
+                        <input id="purchaseOrderNumber" name="purchaseOrderNumber" class="form-control" value="@Context.Request.Query["purchaseOrderNumber"]" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="itemNumber" class="form-label">Item Number</label>
+                        <input id="itemNumber" name="itemNumber" class="form-control" type="number" value="@Context.Request.Query["itemNumber"]" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="itemName" class="form-label">Item Name</label>
+                        <input id="itemName" name="itemName" class="form-control" value="@Context.Request.Query["itemName"]" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="itemDescription" class="form-label">Item Description</label>
+                        <input id="itemDescription" name="itemDescription" class="form-control" value="@Context.Request.Query["itemDescription"]" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="purchasePrice" class="form-label">Purchase Price</label>
+                        <input id="purchasePrice" name="purchasePrice" class="form-control" type="number" step="0.01" value="@Context.Request.Query["purchasePrice"]" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="purchaseQuantity" class="form-label">Purchase Quantity</label>
+                        <input id="purchaseQuantity" name="purchaseQuantity" class="form-control" type="number" value="@Context.Request.Query["purchaseQuantity"]" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary">Apply Filter</button>
+                        <a href="@Url.Action("Index")" class="btn btn-secondary">Clear Filter</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Purchase Details</h5>
+        </div>
+        <div class="card-body">
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Purchase Order #</th>
+                                <th>Item #</th>
+                                <th>Item Name</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.PurchaseOrderNumber</td>
+                                    <td>@item.ItemNumber</td>
+                                    <td>@item.ItemName</td>
+                                    <td>@item.ItemDescription</td>
+                                    <td>@item.PurchasePrice.ToString("C")</td>
+                                    <td>@item.PurchaseQuantity</td>
+                                    <td>@((item.PurchasePrice * item.PurchaseQuantity).ToString("C"))</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-warning edit-item-btn"
+                                                data-bs-toggle="modal" data-bs-target="#editItemModal"
+                                                data-id="@item.PurchaseDetailItemAutoId"
+                                                data-po="@item.PurchaseOrderNumber"
+                                                data-item-num="@item.ItemNumber"
+                                                data-name="@item.ItemName"
+                                                data-desc="@item.ItemDescription"
+                                                data-price="@item.PurchasePrice"
+                                                data-qty="@item.PurchaseQuantity">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p>No purchase detail items found.</p>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addItemModalLabel">Add New Purchase Detail Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="addItemErrors" class="alert alert-danger d-none"></div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="newPurchaseOrderNumber" class="form-label">Purchase Order Number *</label>
+                        <input type="text" class="form-control" id="newPurchaseOrderNumber" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="newItemNumber" class="form-label">Item Number *</label>
+                        <input type="number" class="form-control" id="newItemNumber" required />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="newItemName" class="form-label">Item Name *</label>
+                        <input type="text" class="form-control" id="newItemName" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="newItemDescription" class="form-label">Item Description</label>
+                        <input type="text" class="form-control" id="newItemDescription" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="newPurchasePrice" class="form-label">Purchase Price *</label>
+                        <input type="number" step="0.01" class="form-control" id="newPurchasePrice" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="newPurchaseQuantity" class="form-label">Purchase Quantity *</label>
+                        <input type="number" class="form-control" id="newPurchaseQuantity" required />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNewItemBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Item Modal -->
+<div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editItemModalLabel">Edit Purchase Detail Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="editItemErrors" class="alert alert-danger d-none"></div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="hidden" id="editPurchaseDetailItemAutoId" required />
+                        <label for="editPurchaseOrderNumber" class="form-label">Purchase Order Number *</label>
+                        <input type="text" class="form-control" id="editPurchaseOrderNumber" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="editItemNumber" class="form-label">Item Number *</label>
+                        <input type="number" class="form-control" id="editItemNumber" required />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="editItemName" class="form-label">Item Name *</label>
+                        <input type="text" class="form-control" id="editItemName" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="editItemDescription" class="form-label">Item Description</label>
+                        <input type="text" class="form-control" id="editItemDescription" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="editPurchasePrice" class="form-label">Purchase Price *</label>
+                        <input type="number" step="0.01" class="form-control" id="editPurchasePrice" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="editPurchaseQuantity" class="form-label">Purchase Quantity *</label>
+                        <input type="number" class="form-control" id="editPurchaseQuantity" required />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateItemBtn">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle Edit Modal Population
+            const editButtons = document.querySelectorAll('.edit-item-btn');
+
+            editButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const po = this.getAttribute('data-po');
+                    const itemNum = this.getAttribute('data-item-num');
+                    const name = this.getAttribute('data-name');
+                    const desc = this.getAttribute('data-desc');
+                    const price = this.getAttribute('data-price');
+                    const qty = this.getAttribute('data-qty');
+
+                    // Populate the form fields
+                    document.getElementById('editPurchaseDetailItemAutoId').value = id;
+                    document.getElementById('editPurchaseOrderNumber').value = po;
+                    document.getElementById('editItemNumber').value = itemNum;
+                    document.getElementById('editItemName').value = name;
+                    document.getElementById('editItemDescription').value = desc;
+                    document.getElementById('editPurchasePrice').value = price;
+                    document.getElementById('editPurchaseQuantity').value = qty;
+                });
+            });
+
+            // Handle Add Item Submission
+            const saveNewItemBtn = document.getElementById('saveNewItemBtn');
+            saveNewItemBtn.addEventListener('click', async function() {
+                const errorDiv = document.getElementById('addItemErrors');
+                errorDiv.classList.add('d-none');
+                errorDiv.innerHTML = '';
+
+                // Get values
+                const purchaseOrderNumber = document.getElementById('newPurchaseOrderNumber').value;
+                const itemNumber = parseInt(document.getElementById('newItemNumber').value);
+                const itemName = document.getElementById('newItemName').value;
+                const itemDescription = document.getElementById('newItemDescription').value;
+                const purchasePrice = parseFloat(document.getElementById('newPurchasePrice').value);
+                const purchaseQuantity = parseInt(document.getElementById('newPurchaseQuantity').value);
+
+                // Validate
+                if (!purchaseOrderNumber || !itemNumber || !itemName || !purchasePrice || !purchaseQuantity) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = 'Please fill in all required fields.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/PurchaseDetailItems/Add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            purchaseOrderNumber,
+                            itemNumber,
+                            itemName,
+                            itemDescription,
+                            purchasePrice,
+                            purchaseQuantity
+                        })
+                    });
+
+                    if (response.ok) {
+                        // Close modal and refresh page
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addItemModal'));
+                        modal.hide();
+                        window.location.reload();
+                    } else {
+                        const errorData = await response.text();
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.innerHTML = `Error: ${errorData}`;
+                    }
+                } catch (err) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = `Error: ${err.message}`;
+                }
+            });
+
+            // Handle Update Item Submission
+            const updateItemBtn = document.getElementById('updateItemBtn');
+            updateItemBtn.addEventListener('click', async function() {
+                const errorDiv = document.getElementById('editItemErrors');
+                errorDiv.classList.add('d-none');
+                errorDiv.innerHTML = '';
+
+                // Get values
+                const purchaseDetailItemAutoId = document.getElementById('editPurchaseDetailItemAutoId').value;
+                const purchaseOrderNumber = document.getElementById('editPurchaseOrderNumber').value;
+                const itemNumber = parseInt(document.getElementById('editItemNumber').value);
+                const itemName = document.getElementById('editItemName').value;
+                const itemDescription = document.getElementById('editItemDescription').value;
+                const purchasePrice = parseFloat(document.getElementById('editPurchasePrice').value);
+                const purchaseQuantity = parseInt(document.getElementById('editPurchaseQuantity').value);
+
+                // Validate
+                if (!purchaseOrderNumber || !itemNumber || !itemName || !purchasePrice || !purchaseQuantity) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = 'Please fill in all required fields.';
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/PurchaseDetailItems/Update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            purchaseDetailItemAutoId,
+                            purchaseOrderNumber,
+                            itemNumber,
+                            itemName,
+                            itemDescription,
+                            purchasePrice,
+                            purchaseQuantity
+                        })
+                    });
+
+                    if (response.ok) {
+                        // Close modal and refresh page
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editItemModal'));
+                        modal.hide();
+                        window.location.reload();
+                    } else {
+                        const errorData = await response.text();
+                        errorDiv.classList.remove('d-none');
+                        errorDiv.innerHTML = `Error: ${errorData}`;
+                    }
+                } catch (err) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = `Error: ${err.message}`;
+                }
+            });
+        });
+    </script>
+}

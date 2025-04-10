@@ -1,0 +1,1 @@
+Files Searched: 5, Output File: C:\Prj\AlexLeeRepo\searchResults\search_output_Lorem.txt, Number of Lines Found: 10, Total Occurrences of Term (Lorem): 13
